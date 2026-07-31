@@ -1,114 +1,99 @@
 # FedPA-LoRA: Product-Aligned Federated LoRA
 
-This repository provides the anonymized implementation of **FedPA-LoRA**, a federated LoRA framework designed to address factor-level initialization mismatch and factor-wise aggregation mismatch.
+This repository provides the anonymized implementation of **FedPA-LoRA**, a federated LoRA framework that addresses factor-level initialization mismatch and factor-wise aggregation mismatch.
 
-FedPA-LoRA preserves each client's locally optimized LoRA factors across communication rounds, guides local training through product-level alignment with a low-rank global reference, and aggregates client updates directly in the product space.
+FedPA-LoRA preserves each client's locally optimized LoRA factors across communication rounds, aligns local products with low-rank global references, and aggregates client updates directly in the product space.
 
 ## Overview
 
 For client $i$, the LoRA update is represented as
 
-$$
-\Delta W_i = B_i A_i.
-$$
+```math
+\Delta W_i = B_iA_i.
+```
 
-Conventional federated LoRA methods typically replace local factors with newly aggregated global factors at every communication round. This may disrupt optimization continuity because different factor pairs can represent similar product updates.
+Instead of replacing the local factors with newly reconstructed global factors at every round, FedPA-LoRA preserves them as
 
-FedPA-LoRA instead preserves each client's local factors across rounds:
-
-$$
-(B_i^{(t,0)}, A_i^{(t,0)})
+```math
+(B_i^{(t,0)},A_i^{(t,0)})
 \leftarrow
-(B_i^{(t-1)}, A_i^{(t-1)}).
-$$
+(B_i^{(t-1)},A_i^{(t-1)}).
+```
 
-To control client drift, each client minimizes a product-guided local objective:
+To control client drift while retaining local optimization continuity, client $i$ minimizes
 
-$$
+```math
 \mathcal{L}_i^{(t)}(B_i,A_i)
-============================
-
+=
 f_i(W_0+B_iA_i)
 +
 \frac{\lambda}{2}
-\left|
+\left\|
 B_iA_i
-------
-
+-
 B_{g,i}^{(t-1)}A_{g,i}^{(t-1)}
-\right|_{\mathrm{F}}^2.
-$$
+\right\|_{\mathrm F}^{2}.
+```
 
-Here, $W_0$ is the frozen pretrained weight matrix and
-$(B_{g,i}^{(t-1)},A_{g,i}^{(t-1)})$ is a rank-$R_i$ global reference determined by the client's communication budget.
+Here, $W_0$ is the frozen pretrained weight matrix, and $(B_{g,i}^{(t-1)},A_{g,i}^{(t-1)})$ is a rank-$R_i$ global reference determined by the client's communication budget.
 
-After local training, the server aggregates client updates directly in the product space:
+After local training, the server targets the product-space aggregate
 
-$$
+```math
 \Delta W_{\mathrm{ideal}}^{(t)}
-===============================
-
+=
 \frac{1}{N}
 \sum_{i=1}^{N}
 B_i^{(t)}A_i^{(t)}.
-$$
+```
 
-This avoids the mismatch caused by independently averaging $B_i$ and $A_i$.
+This avoids the mismatch caused by independently averaging the two LoRA factors.
 
 ## Highlights
 
-* **Local factor preservation:** Retains locally optimized LoRA factors across communication rounds.
-* **Product-guided alignment:** Regularizes each local product toward a low-rank global reference.
-* **Product-space aggregation:** Aggregates $B_iA_i$ rather than averaging the two factors independently.
-* **Heterogeneous ranks:** Supports different client computation ranks $r_i$ and communication ranks $R_i$.
-* **Efficient reconstruction:** Reconstructs the global adapter using reduced QR decomposition and core SVD.
-* **Randomized extension:** Supports a lower-complexity randomized reconstruction option.
+* **Local preservation and product alignment:** Preserves client-specific factors while controlling drift in the product space.
+* **Product-space aggregation:** Avoids factor-wise aggregation mismatch.
+* **Rank flexibility:** Supports heterogeneous computation and communication ranks.
+* **Efficient reconstruction:** Provides exact reduced-QR reconstruction and a lower-complexity randomized approximation.
 
-## Efficient Global Reconstruction
+## Efficient Reconstruction
 
-The server constructs concatenated factors
+The server constructs concatenated factors satisfying
 
-$$
-B_{\mathrm{cat}}^{(t)}
-======================
-
-\frac{1}{\sqrt{N}}
-\left[
-B_1^{(t)},\ldots,B_N^{(t)}
-\right],
-$$
-
-$$
-A_{\mathrm{cat}}^{(t)}
-======================
-
-\frac{1}{\sqrt{N}}
-\left[
-(A_1^{(t)})^\top,\ldots,(A_N^{(t)})^\top
-\right]^\top.
-$$
-
-These factors satisfy
-
-$$
+```math
 B_{\mathrm{cat}}^{(t)}A_{\mathrm{cat}}^{(t)}
-============================================
+=
+\frac{1}{N}
+\sum_{i=1}^{N}
+B_i^{(t)}A_i^{(t)}.
+```
 
-\Delta W_{\mathrm{ideal}}^{(t)}.
-$$
+The exact reconstruction applies reduced QR factorizations to the concatenated factors and truncated SVD to the resulting small core matrix. It recovers the optimal rank-$R_g$ approximation without explicitly forming the dense aggregate.
 
-The server applies reduced QR factorizations to the concatenated factors and performs truncated SVD only on the resulting small core matrix. This reconstructs the optimal rank-$R_g$ approximation without explicitly forming the dense aggregated update.
+Under homogeneous rank $r$ and $Nr\ll d$, its dominant per-layer server complexity is
+
+```math
+\mathcal{O}(N^2dr^2).
+```
+
+The randomized reconstruction directly sketches the factored aggregate and reduces the dominant complexity to
+
+```math
+\mathcal{O}(Ndr^2)
+```
+
+when the sketch dimension is $\mathcal{O}(r)$, at the cost of replacing exact rank-constrained optimality with a probabilistic approximation guarantee.
 
 ## Implementation
 
-The implementation is built on top of FederatedScope-LLM. The main components are located in:
+The implementation is built on FederatedScope-LLM. The main components are located in:
 
 * `federatedscope/core/workers/client.py`: Local factor preservation and product-guided training.
 * `federatedscope/core/workers/server.py`: Global reference construction and server-side reconstruction.
 * `federatedscope/core/aggregators/`: Aggregation utilities.
 * `federatedscope/core/configs/cfg_llm.py`: LoRA and FedPA-LoRA configuration options.
-* `federatedscope/glue/yamls/ours.yaml`: Configuration for natural language understanding tasks.
-* `federatedscope/llm/yamls/ours.yaml`: Configuration for generative tasks.
+* `federatedscope/glue/yamls/ours.yaml`: Natural language understanding configuration.
+* `federatedscope/llm/yamls/ours.yaml`: Generative-task configuration.
 
 ## Installation
 
@@ -117,7 +102,6 @@ The implementation uses Python 3.10 and PyTorch.
 ```shell
 conda create -n fedpa-lora python=3.10
 conda activate fedpa-lora
-
 pip install -e .[llm]
 pip install evaluate
 ```
@@ -126,36 +110,18 @@ Install the PyTorch build corresponding to your CUDA environment before installi
 
 ## Quick Start
 
-Run a natural language understanding experiment:
+Natural language understanding:
 
 ```shell
-python -m federatedscope.main \
-  --cfg federatedscope/glue/yamls/ours.yaml
+python -m federatedscope.main --cfg federatedscope/glue/yamls/ours.yaml
 ```
 
-Run a generative-task experiment:
+Generative tasks:
 
 ```shell
-python -m federatedscope.main \
-  --cfg federatedscope/llm/yamls/ours.yaml
+python -m federatedscope.main --cfg federatedscope/llm/yamls/ours.yaml
 ```
-
-## Server-Side Complexity
-
-Under homogeneous client rank $r$ and $Nr \ll d$, the exact reconstruction has dominant per-layer server complexity
-
-$$
-\mathcal{O}(N^2dr^2),
-$$
-
-while the randomized reconstruction reduces it to
-
-$$
-\mathcal{O}(Ndr^2).
-$$
-
-Both approaches avoid explicitly constructing the dense $d \times d$ product aggregate.
 
 ## Anonymity Notice
 
-This repository has been anonymized for double-blind peer review. Author names, affiliations, acknowledgements, paper links, and citation information are intentionally omitted during the review period.
+This repository has been anonymized for double-blind peer review. Author names, affiliations, paper links, acknowledgements, and citation information are intentionally omitted during the review period.
