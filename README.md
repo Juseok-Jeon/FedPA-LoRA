@@ -47,7 +47,7 @@ Install the PyTorch build corresponding to your CUDA environment before installi
 FedPA-LoRA is implemented on top of FederatedScope-LLM. A representative experiment can be launched with
 
 ```shell
-python -m federatedscope.main --cfg federatedscope/glue/yamls/ours.yaml
+python -m federatedscope.main --cfg federatedscope/glue/yamls/fedpa.yaml
 ```
 
 Additional configurations are provided under `federatedscope/glue/yamls/` and `federatedscope/llm/yamls/`.
