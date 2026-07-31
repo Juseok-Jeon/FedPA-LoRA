@@ -1,8 +1,15 @@
 # FedPA-LoRA: Product-Aligned Federated LoRA
 
-This repository provides the anonymized implementation of **FedPA-LoRA**, a federated LoRA framework that addresses factor-level initialization mismatch and factor-wise aggregation mismatch.
+This repository provides the anonymized implementation of **FedPA-LoRA**, a federated LoRA framework that addresses two fundamental mismatches in federated LoRA training: aggregation mismatch from independently averaging LoRA factors and initialization mismatch from replacing locally optimized factors across communication rounds.
 
-FedPA-LoRA preserves each client's locally optimized LoRA factors across communication rounds, aligns local products with low-rank global references, and aggregates client updates directly in the product space.
+FedPA-LoRA resolves aggregation mismatch through product-space aggregation and low-rank reconstruction, while resolving initialization mismatch through local factor preservation.
+
+## Highlights
+
+* **Mismatch correction:** Product-space reconstruction resolves aggregation mismatch, while local factor preservation resolves initialization mismatch.
+* **Product-guided training:** Controls client drift without overwriting locally optimized factors.
+* **Rank flexibility:** Supports heterogeneous computation and communication ranks.
+* **Efficient reconstruction:** Reduces dense-SVD complexity from $\mathcal{O}(d^3)$ to $\mathcal{O}(N^2dr^2)$ using reduced QR, and further to $\mathcal{O}(Ndr^2)$ using randomized reconstruction.
 
 ## Overview
 
@@ -12,7 +19,9 @@ For client $i$, the LoRA update is represented as
 \Delta W_i = B_iA_i.
 ```
 
-Instead of replacing the local factors with newly reconstructed global factors at every round, FedPA-LoRA preserves them as
+### Local Factor Preservation
+
+Instead of replacing local factors with newly reconstructed global factors at every communication round, each client preserves its previously optimized factors:
 
 ```math
 (B_i^{(t,0)},A_i^{(t,0)})
@@ -20,7 +29,11 @@ Instead of replacing the local factors with newly reconstructed global factors a
 (B_i^{(t-1)},A_i^{(t-1)}).
 ```
 
-To control client drift while retaining local optimization continuity, client $i$ minimizes
+This avoids factor-level initialization mismatch and maintains optimization continuity across rounds.
+
+### Product-Guided Alignment
+
+To control client drift without overwriting the preserved factors, client $i$ minimizes
 
 ```math
 \mathcal{L}_i^{(t)}(B_i,A_i)
@@ -37,7 +50,9 @@ B_{g,i}^{(t-1)}A_{g,i}^{(t-1)}
 
 Here, $W_0$ is the frozen pretrained weight matrix, and $(B_{g,i}^{(t-1)},A_{g,i}^{(t-1)})$ is a rank-$R_i$ global reference determined by the client's communication budget.
 
-After local training, the server targets the product-space aggregate
+### Product-Space Aggregation
+
+Rather than averaging $B_i$ and $A_i$ independently, the server aggregates client updates directly in the product space:
 
 ```math
 \Delta W_{\mathrm{ideal}}^{(t)}
@@ -47,18 +62,13 @@ After local training, the server targets the product-space aggregate
 B_i^{(t)}A_i^{(t)}.
 ```
 
-This avoids the mismatch caused by independently averaging the two LoRA factors.
-
-## Highlights
-
-* **Local preservation and product alignment:** Preserves client-specific factors while controlling drift in the product space.
-* **Product-space aggregation:** Avoids factor-wise aggregation mismatch.
-* **Rank flexibility:** Supports heterogeneous computation and communication ranks.
-* **Efficient reconstruction:** Provides exact reduced-QR reconstruction and a lower-complexity randomized approximation.
+This resolves factor-wise aggregation mismatch and naturally supports heterogeneous client ranks.
 
 ## Efficient Reconstruction
 
-The server constructs concatenated factors satisfying
+Directly constructing the dense product aggregate and applying SVD requires dominant server-side complexity $\mathcal{O}(d^3)$.
+
+FedPA-LoRA instead concatenates the uploaded low-rank factors such that
 
 ```math
 B_{\mathrm{cat}}^{(t)}A_{\mathrm{cat}}^{(t)}
@@ -68,15 +78,13 @@ B_{\mathrm{cat}}^{(t)}A_{\mathrm{cat}}^{(t)}
 B_i^{(t)}A_i^{(t)}.
 ```
 
-The exact reconstruction applies reduced QR factorizations to the concatenated factors and truncated SVD to the resulting small core matrix. It recovers the optimal rank-$R_g$ approximation without explicitly forming the dense aggregate.
-
-Under homogeneous rank $r$ and $Nr\ll d$, its dominant per-layer server complexity is
+Reduced QR factorizations followed by truncated SVD of the resulting small core matrix recover the same optimal rank-$R_g$ approximation with dominant per-layer complexity
 
 ```math
 \mathcal{O}(N^2dr^2).
 ```
 
-The randomized reconstruction directly sketches the factored aggregate and reduces the dominant complexity to
+A factored randomized reconstruction further reduces the dominant complexity to
 
 ```math
 \mathcal{O}(Ndr^2)
@@ -84,20 +92,7 @@ The randomized reconstruction directly sketches the factored aggregate and reduc
 
 when the sketch dimension is $\mathcal{O}(r)$, at the cost of replacing exact rank-constrained optimality with a probabilistic approximation guarantee.
 
-## Implementation
-
-The implementation is built on FederatedScope-LLM. The main components are located in:
-
-* `federatedscope/core/workers/client.py`: Local factor preservation and product-guided training.
-* `federatedscope/core/workers/server.py`: Global reference construction and server-side reconstruction.
-* `federatedscope/core/aggregators/`: Aggregation utilities.
-* `federatedscope/core/configs/cfg_llm.py`: LoRA and FedPA-LoRA configuration options.
-* `federatedscope/glue/yamls/ours.yaml`: Natural language understanding configuration.
-* `federatedscope/llm/yamls/ours.yaml`: Generative-task configuration.
-
 ## Installation
-
-The implementation uses Python 3.10 and PyTorch.
 
 ```shell
 conda create -n fedpa-lora python=3.10
@@ -108,19 +103,15 @@ pip install evaluate
 
 Install the PyTorch build corresponding to your CUDA environment before installing this package.
 
-## Quick Start
+## Implementation
 
-Natural language understanding:
+FedPA-LoRA is implemented on top of FederatedScope-LLM. A representative experiment can be launched with
 
 ```shell
 python -m federatedscope.main --cfg federatedscope/glue/yamls/ours.yaml
 ```
 
-Generative tasks:
-
-```shell
-python -m federatedscope.main --cfg federatedscope/llm/yamls/ours.yaml
-```
+Additional configurations are provided under `federatedscope/glue/yamls/` and `federatedscope/llm/yamls/`.
 
 ## Anonymity Notice
 
