@@ -1,0 +1,58 @@
+use_gpu: True
+device: 0
+early_stop:
+  patience: 0
+federate:
+  freeze_A: False
+  mode: standalone
+  client_num: 3
+  total_round_num: 250
+  save_to: "roberta_mnli_3_fedpa.ckpt"
+  share_local_model: True
+  online_aggr: False
+  make_global_eval: False
+personalization:
+  local_param: ['classifier']
+data:
+  root: data/
+  type: 'mnli@glue'
+  matched: True
+  splitter: 'lda'
+  splitter_args: [{'alpha': 0.5}]
+llm:
+  tok_len: 128
+  adapter:
+    use: True
+    args: [ { 'adapter_package': 'peft', 'adapter_method': 'lora', 'r': 4, 'lora_alpha': 8, 'lora_dropout': 0.05 } ]
+dataloader:
+  batch_size: 128
+model:
+  type: 'FacebookAI/roberta-large@huggingface_llm'
+train:
+  local_update_steps: 20
+  batch_or_epoch: batch
+  optimizer:
+    lr: 2e-2
+  is_enable_half: True
+criterion:
+  type: CrossEntropyLoss
+trainer:
+  type: gluetrainer
+eval:
+  freq: 1
+  metrics: ['accuracy', 'f1']
+  count_flops: False
+  best_res_update_round_wise_key: 'val_accuracy'
+lora:
+  method: "shareAB" 
+  rotate: False
+  initialshare: 'B'
+
+  regularization: True
+  reg: "product"        # option: product, B, A, BA
+  lam: 1                # regularization strength
+
+  svd: reduced          # option: full, reduced, random, none
+  # random_p: 2         # only used when svd: random 
+
+  # reference_rank: 4   # 0 uses the full global rank

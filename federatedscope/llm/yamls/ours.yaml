@@ -1,0 +1,58 @@
+use_gpu: True
+device: 0
+eval_device: 0
+early_stop:
+  patience: 0
+federate:
+  freeze_A: False
+  mode: standalone
+  client_num: 3
+  total_round_num: 200
+  save_to: "llama_gsm8k_3_fedpa.ckpt"
+  save_freq: 100
+  share_local_model: True
+  online_aggr: False
+  make_global_eval: True
+personalization: 
+  local_param: []
+data:
+  root: data/
+  type: 'gsm8k@llm'
+  splitter: 'iid'
+llm:
+  tok_len: 1000
+  chat:
+    max_len: 1000
+  adapter:
+    use: True
+    args: [ { 'adapter_package': 'peft', 'adapter_method': 'lora', 'r': 8, 'lora_alpha': 16, 'lora_dropout': 0.05 } ]
+dataloader:
+  batch_size: 1
+model:
+  type: 'meta-llama/Meta-Llama-3-8B@huggingface_llm'
+train:
+  local_update_steps: 30
+  batch_or_epoch: batch
+  optimizer:
+    lr: 0.005
+  is_enable_half: True
+criterion:
+  type: CrossEntropyLoss
+trainer:
+  type: llmtrainer
+eval:
+  freq: 200
+  metrics: ['acc']
+  best_res_update_round_wise_key: val_acc
+  count_flops: False
+
+lora:
+  method: "shareAB" 
+  rotate: False
+  initialshare: 'B'
+
+  regularization: True
+  reg: "product"        # option: product, B, A, BA
+  lam: 1                # regularization strength
+
+  svd: reduced          # option: full, reduced, random, none
