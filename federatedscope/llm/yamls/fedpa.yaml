@@ -1,3 +1,4 @@
+seed: 0
 use_gpu: True
 device: 0
 eval_device: 0
@@ -52,7 +53,6 @@ lora:
   initialshare: 'B'
 
   regularization: True
-  reg: "product"        # option: product, B, A, BA
-  lam: 1                # regularization strength
+  lam: 1          
 
-  svd: reduced          # option: full, reduced, random, none
+  svd: reduced     

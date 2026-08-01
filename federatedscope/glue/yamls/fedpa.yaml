@@ -1,3 +1,4 @@
+seed: 0
 use_gpu: True
 device: 0
 early_stop:
@@ -49,10 +50,10 @@ lora:
   initialshare: 'B'
 
   regularization: True
-  reg: "product"        # option: product, B, A, BA
+  reg: "product"        # option: product, b, a, both
   lam: 1                # regularization strength
 
   svd: reduced          # option: full, reduced, random, none
-  # random_p: 2         # only used when svd: random 
+  # oversampling_p: 2         # only used when svd: random 
 
   # reference_rank: 4   # 0 uses the full global rank
