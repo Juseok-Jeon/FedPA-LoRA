@@ -54,6 +54,6 @@ lora:
   lam: 1                # regularization strength
 
   svd: reduced          # option: full, reduced, random, none
-  # oversampling_p: 2         # only used when svd: random 
+  # oversampling_p: 2   # only used when svd: random 
 
   # reference_rank: 4   # 0 uses the full global rank

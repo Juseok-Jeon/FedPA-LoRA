@@ -4,9 +4,9 @@ This repository provides the anonymized implementation of **FedPA-LoRA**, a fede
 
 ## Highlights
 
-* **Product-space aggregation:** Aggregates client products $B_iA_i$ rather than averaging $B_i$ and $A_i$ independently.
 * **Local factor preservation:** Retains locally optimized factors across rounds.
 * **Product-guided alignment:** Controls client drift while supporting heterogeneous ranks.
+* **Product-space aggregation:** Aggregates client products $B_iA_i$ rather than averaging $B_i$ and $A_i$ independently.
 * **Efficient reconstruction:** Reduces server complexity from $\mathcal{O}(d^3)$ to $\mathcal{O}(N^2dr^2)$, or $\mathcal{O}(Ndr^2)$ with randomized reconstruction.
 
 ## Installation
