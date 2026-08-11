@@ -37,5 +37,4 @@ This repository has been anonymized for double-blind peer review. Author names, 
 ## Acknowledgements
 
 We would like to thank the authors of [FedSA-LoRA](https://github.com/Pengxin-Guo/FedSA-LoRA) and [FedRot-LoRA](https://github.com/haoran-zh/FedRot-LoRA) for releasing their public repositories.
-
 This implementation is built on the [FederatedScope-LLM](https://github.com/alibaba/FederatedScope/tree/llm) framework.
