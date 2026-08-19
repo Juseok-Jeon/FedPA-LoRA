@@ -28,7 +28,7 @@ python -m federatedscope.main --cfg federatedscope/glue/yamls/fedpa.yaml
 
 Additional configurations are provided under `federatedscope/glue/yamls/` and `federatedscope/llm/yamls/`.
 
-Reported results are averaged over seeds `0`, `13`, and `123`. The corresponding dataset, model, training, and method configurations are specified in the YAML files.
+The corresponding dataset, model, training, and method configurations are specified in the YAML files.
 
 ## Anonymity Notice
 
