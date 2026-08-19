@@ -50,7 +50,7 @@ eval:
 lora:
   method: "shareAB" 
   rotate: False
-  initialshare: 'B'
+  initialshare: 'A'
 
   regularization: True
   lam: 1          
