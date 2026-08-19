@@ -47,7 +47,7 @@ eval:
 lora:
   method: "shareAB" 
   rotate: False
-  initialshare: 'B'
+  initialshare: 'A'
 
   regularization: True
   reg: "product"        # option: product, b, a, both
