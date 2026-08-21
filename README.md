@@ -30,10 +30,6 @@ Additional configurations are provided under `federatedscope/glue/yamls/` and `f
 
 The corresponding dataset, model, training, and method configurations are specified in the YAML files.
 
-## Anonymity Notice
-
-This repository has been anonymized for double-blind peer review. Author names, affiliations, paper links, acknowledgements, and citation information are intentionally omitted during the review period.
-
 ## Acknowledgements
 
 We would like to thank the authors of [FedSA-LoRA](https://github.com/Pengxin-Guo/FedSA-LoRA) and [FedRot-LoRA](https://github.com/haoran-zh/FedRot-LoRA) for releasing their public repositories.
